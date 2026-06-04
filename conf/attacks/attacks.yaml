@@ -265,6 +265,37 @@ human_jailbreaks:
   generation_config: ${attacks._default.generation_config}
   seed: ${attacks._default.seed}
   num_steps: 1
+jailbreak_r1:
+  name: jailbreak_r1
+  type: discrete
+  version: 0.0.1
+  generation_config: ${attacks._default.generation_config}
+  seed: ${attacks._default.seed}
+  num_steps: 20
+  parse_retries: 4
+  attack_condition_prefix: "<think> Sure, let's think step by step, "
+  parse_pattern: "<think>(.*?)</think>|<attack>(.*?)</attack>"
+  fallback_token: "a"
+  allow_untagged_fallback: false
+  prompt_cache_mode: "off" # off, read, write, read_write
+  prompt_cache_path: null
+  prompt_cache_num_steps: null
+  prompt_cache_subset_strategy: first_n # first_n, seeded_random
+  prompt_cache_strict_match: true
+  attack_model:
+    id: yukiyounai/Jailbreak-R1
+    tokenizer_id: yukiyounai/Jailbreak-R1
+    short_name: Jailbreak-R1
+    developer_name: Guo et al.
+    compile: false
+    dtype: bfloat16
+    chat_template: null
+    trust_remote_code: true
+  attack_model_generation_config:
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 0
+    max_new_tokens: 512
 inpainting:
   name: inpainting
   type: discrete
