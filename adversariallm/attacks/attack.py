@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from abc import abstractmethod
-from typing import Union
+from typing import TYPE_CHECKING, Any, Union
 
 from torch import Tensor
 import transformers
@@ -9,6 +9,9 @@ from beartype.typing import Literal, Optional, Generic, TypeVar
 
 from ..dataset import PromptDataset
 from ..types import Conversation
+
+if TYPE_CHECKING:
+    from ..defenses import TargetSystem
 
 
 @dataclass
@@ -30,6 +33,8 @@ class AttackStepResult:
     # The model's completion(s) in response to model_input. We use a list to store
     # multiple completions in case we are using distributional evaluation.
     model_completions: list[str]
+    # Optional raw completions before defense transformation.
+    model_completions_raw: Optional[list[str]] = None
 
     # Judge scores - should be a dict of judge name -> dict[str, list] mapping type to list of scores
     scores: dict[str, dict[str, list[float]]] = field(default_factory=dict)
@@ -55,6 +60,9 @@ class AttackStepResult:
     model_input_tokens: Optional[list[int]] = None
 
     model_input_embeddings: Optional[Union[Tensor, str]] = None
+
+    # Optional defense metadata (kept optional for backward compatibility).
+    defense_metadata: Optional[list[dict[str, Any]]] = None
 
 
 @beartype
@@ -177,8 +185,12 @@ class Attack(Generic[AttRes]):
     @abstractmethod
     def run(
         self,
-        model: transformers.PreTrainedModel,
-        tokenizer: transformers.PreTrainedTokenizerBase,
+        target: "TargetSystem",
         dataset: PromptDataset,
     ) -> AttRes:
+        """Run the attack against the supplied target system.
+
+        Registry validation ensures attacks without runtime-defense support only
+        receive the undefended implementation.
+        """
         raise NotImplementedError

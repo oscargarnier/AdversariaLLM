@@ -29,6 +29,7 @@ import torch
 import transformers
 
 from .attack import Attack, AttackResult, AttackStepResult, GenerationConfig, SingleAttackRunResult
+from ..defenses import TargetSystem
 from ..io_utils import free_vram, load_model_and_tokenizer
 from ..lm_utils import generate_ragged_batched, prepare_conversation
 from ..types import Conversation
@@ -105,6 +106,11 @@ class JailbreakR1Config:
     prompt_cache_subset_strategy: str = "first_n"  # first_n or seeded_random
     # Enforce strict metadata/fingerprint matching when reading cache.
     prompt_cache_strict_match: bool = True
+
+
+@dataclass(kw_only=True)
+class JailbreakR1AttackStepResult(AttackStepResult):
+    think: str
 
 
 class JailbreakR1Attack(Attack):
@@ -481,8 +487,7 @@ class JailbreakR1Attack(Attack):
     @torch.no_grad()
     def run(
         self,
-        model: transformers.AutoModelForCausalLM,
-        tokenizer: transformers.AutoTokenizer,
+        target: TargetSystem,
         dataset: torch.utils.data.Dataset,
     ) -> AttackResult:
         conversations = list(dataset)
@@ -527,7 +532,7 @@ class JailbreakR1Attack(Attack):
         attack_model: Optional[transformers.AutoModelForCausalLM] = None
         attack_tokenizer: Optional[transformers.AutoTokenizer] = None
         if missing_indices:
-            attack_model, attack_tokenizer = self._get_attack_model(model, tokenizer)
+            attack_model, attack_tokenizer = self._get_attack_model(target.model, target.tokenizer)
             prompts_per_behavior = (
                 self.config.prompt_cache_num_steps
                 if self.config.prompt_cache_num_steps is not None
@@ -562,7 +567,7 @@ class JailbreakR1Attack(Attack):
                     prompts_per_behavior,
                     len(missing_indices),
                 )
-        if attack_model is not None and attack_model is not model:
+        if attack_model is not None and attack_model is not target.model:
             del attack_model
             del attack_tokenizer
             free_vram()
@@ -576,33 +581,31 @@ class JailbreakR1Attack(Attack):
             t_attack = 0.0
 
             t_prepare_start = time.time()
-            prompt_tokens_per_step = []
             model_inputs = []
+            generation_conversations = []
             for think, attack_prompt, parse_success in attack_triplets:
-                adv_conversation = [
+                generation_conversation = [
                     {"role": "user", "content": attack_prompt},
-                    {"role": "assistant", "content": conversation[1]["content"]},
+                    {"role": "assistant", "content": ""},
                 ]
-                token_tensors = prepare_conversation(tokenizer, adv_conversation)
-                flat_tokens = [tokens for turn_tokens in token_tensors for tokens in turn_tokens]
-                prompt_tokens = torch.cat(flat_tokens[:-1], dim=0)
-                model_input = copy.deepcopy(adv_conversation)
-                model_input[-1]["content"] = ""
-                prompt_tokens_per_step.append(prompt_tokens)
-                model_inputs.append((think, attack_prompt, parse_success, model_input, prompt_tokens.tolist()))
+                generation_conversations.append(generation_conversation)
+                model_inputs.append((think, attack_prompt, parse_success, copy.deepcopy(generation_conversation)))
             t_prepare = time.time() - t_prepare_start
 
             t_target_start = time.time()
-            completions_per_step = generate_ragged_batched(
-                model,
-                tokenizer,
-                token_list=prompt_tokens_per_step,
-                initial_batch_size=len(prompt_tokens_per_step),
+            generation_result = target.generate(
+                generation_conversations,
+                initial_batch_size=len(generation_conversations),
                 max_new_tokens=self.config.generation_config.max_new_tokens,
                 temperature=self.config.generation_config.temperature,
                 top_p=self.config.generation_config.top_p,
                 top_k=self.config.generation_config.top_k,
                 num_return_sequences=self.config.generation_config.num_return_sequences,
+            )
+            completions_per_step = generation_result.gen
+            generation_input_ids = generation_result.require_input_ids(
+                "Jailbreak-R1",
+                expected_len=len(model_inputs),
             )
             t_target = time.time() - t_target_start
 
@@ -613,14 +616,14 @@ class JailbreakR1Attack(Attack):
                 attack_prompt,
                 parse_success,
                 model_input,
-                model_input_tokens,
             ) in enumerate(model_inputs):
                 steps.append(
-                    AttackStepResult(
+                    JailbreakR1AttackStepResult(
                         step=step,
                         model_completions=completions_per_step[step],
+                        model_completions_raw=generation_result.raw_for(step),
                         model_input=model_input,
-                        model_input_tokens=model_input_tokens,
+                        model_input_tokens=generation_input_ids[step],
                         time_taken=time_per_step,
                         scores={
                             "jailbreak_r1": {
@@ -628,6 +631,8 @@ class JailbreakR1Attack(Attack):
                                 "attack_prompt_length": [float(len(attack_prompt))],
                             }
                         },
+                        defense_metadata=generation_result.defense_metadata_for(step),
+                        think=think,
                     )
                 )
 

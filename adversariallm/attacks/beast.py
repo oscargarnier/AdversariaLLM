@@ -51,13 +51,12 @@ class BEASTAttack(Attack):
         self.prefix_cache = None
 
     @torch.no_grad()
-    def run(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, dataset) -> AttackResult:
+    def run(self, target, dataset) -> AttackResult:
         """
         Runs the BEASTAttack on a given model and dataset.
 
         Args:
-            model (torch.nn.Module): The language model to be attacked.
-            tokenizer: Tokenizer compatible with the model.
+            target: Target system containing the model and tokenizer.
             dataset: Iterable of (message, target) pairs containing the input prompts
                 and the desired target strings.
 
@@ -65,6 +64,8 @@ class BEASTAttack(Attack):
             AttackResult: Holds all data about the generated attacks, losses, prompts,
                 completions, and execution times.
         """
+        model = target.model
+        tokenizer = target.tokenizer
         t_start = time.time()
         attacks, losses, times, prompts, token_list, flops_list = [], [], [], [], [], []
 

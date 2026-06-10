@@ -36,22 +36,22 @@ class HumanJailbreaksAttack(Attack):
     @torch.no_grad
     def run(
         self,
-        model: transformers.AutoModelForCausalLM,
-        tokenizer: transformers.AutoTokenizer,
+        target,
         dataset: torch.utils.data.Dataset,
     ) -> AttackResult:
         """Run the HumanJailbreak attacks on the given dataset.
 
         Parameters:
         ----------
-            model: The model to attack.
-            tokenizer: The tokenizer to use.
+            target: Target system containing the model and tokenizer.
             dataset: The dataset to attack.
 
         Returns:
         -------
             AttackResult: The result of the attack
         """
+        model = target.model
+        tokenizer = target.tokenizer
         t_start_batch = time.time()
         all_results = AttackResult()
 

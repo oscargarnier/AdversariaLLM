@@ -11,6 +11,7 @@ import copy
 import logging
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import pandas as pd
 import torch
@@ -18,8 +19,9 @@ import transformers
 from beartype.typing import Optional
 from huggingface_hub import hf_hub_download
 
+from ..defenses import TargetSystem
 from ..dataset import PromptDataset
-from ..lm_utils import generate_ragged_batched, get_losses_batched, prepare_conversation
+from ..lm_utils import prepare_conversation
 from ..types import Conversation
 from .attack import Attack, AttackResult, AttackStepResult, GenerationConfig, SingleAttackRunResult
 
@@ -58,7 +60,7 @@ class InpaintingAttack(Attack):
                 repo_type="dataset",
             )
 
-        self.inpainting_data = pd.read_csv(data_path)
+        self.inpainting_data = self._load_inpainting_data(data_path)
         # Downsample variants per behavior; seed ensures reproducibility.
         if config.num_samples_per_behavior is not None:
             self.inpainting_data = (
@@ -73,32 +75,42 @@ class InpaintingAttack(Attack):
             "Not all behaviors have the specified number of inpainting samples after sampling."
         )
 
+    @staticmethod
+    def _load_inpainting_data(path: str) -> pd.DataFrame:
+        suffix = Path(path).suffix.lower()
+        if suffix == ".parquet":
+            return pd.read_parquet(path)
+        if suffix == ".tsv":
+            return pd.read_csv(path, sep="\t")
+        if suffix in {"", ".csv", ".txt"}:
+            return pd.read_csv(path)
+        raise ValueError(
+            f"Unsupported inpainting data format: {path}. "
+            "Supported extensions: .csv, .tsv, .parquet"
+        )
+
     @torch.no_grad
     def run(
         self,
-        model: transformers.PreTrainedModel,
-        tokenizer: transformers.PreTrainedTokenizerBase,
+        target: TargetSystem,
         dataset: PromptDataset,
     ) -> AttackResult:
         """Run the Inpainting attack on the given dataset.
         Parameters:
         ----------
-            model: The model to attack.
-            tokenizer: The tokenizer to use.
             dataset: The dataset to attack.
+            target: Runtime interface for target-system generation and loss.
 
         Returns:
         -------
             AttackResult: The result of the attack
         """
         t0 = time.time()
-
         # --- 1. Prepare Inputs ---
-        input_conversations: list[Conversation] = []
+        generation_conversations: list[Conversation] = []
         original_conversations: list[Conversation] = []
-        full_token_tensors_list: list[torch.Tensor] = []
-        prompt_token_tensors_list: list[torch.Tensor] = []
-        target_token_tensors_list: list[torch.Tensor] = []
+        loss_full_token_tensors_list: list[torch.Tensor] = []
+        generation_prompt_token_tensors_list: list[torch.Tensor] = []
 
         inpainting_prompts_per_prompt = 0
         for conversation in dataset:
@@ -113,59 +125,37 @@ class InpaintingAttack(Attack):
             for conversation in conversations:
                 # Assuming conversation = [{'role': 'user', ...}, {'role': 'assistant', ...}]
                 assert len(conversation) == 2, "Inpainting attack currently assumes single-turn conversation."
-                input_conversations.append(conversation)
+                conv_for_generation = copy.deepcopy(conversation)
+                conv_for_generation[-1]["content"] = ""
+                generation_conversations.append(conv_for_generation)
 
-                token_tensors = prepare_conversation(tokenizer, conversation)
+                prompt_token_tensors = prepare_conversation(target.tokenizer, conv_for_generation)
+                prompt_flat_tokens = [t for turn_tokens in prompt_token_tensors for t in turn_tokens]
+                generation_prompt_token_tensors_list.append(torch.cat(prompt_flat_tokens, dim=0))
+
+                token_tensors = prepare_conversation(target.tokenizer, conversation)
                 flat_tokens = [t for turn_tokens in token_tensors for t in turn_tokens]
+                # Concatenate all turns for the full input/target context.
+                loss_full_token_tensors_list.append(torch.cat(flat_tokens, dim=0))
 
-                # Concatenate all turns for the full input/target context
-                full_token_tensors_list.append(torch.cat(flat_tokens, dim=0))
-
-                # Identify prompt tokens (everything before the target assistant turn)
-                prompt_token_tensors_list.append(torch.cat(flat_tokens[:-1]))
-                target_token_tensors_list.append(flat_tokens[-1])
+        B = len(generation_conversations)
 
         # --- 2. Calculate Losses ---
-        B = len(input_conversations)
+        loss_time_total = 0.0
         t_start_loss = time.time()
-        # We need targets shifted by one position for standard next-token prediction loss
-        shifted_target_tensors_list = [t.roll(-1, 0) for t in full_token_tensors_list]
-
-        # Calculate loss for the full sequences
-        with torch.no_grad():
-            all_losses_per_token = get_losses_batched(
-                model,
-                targets=shifted_target_tensors_list,
-                token_list=full_token_tensors_list,
-                initial_batch_size=B,
-                verbose=True,
-            )
-
-        # Extract average loss *only* over the target tokens for each instance
-        instance_losses = []
-        for i in range(B):
-            full_len = full_token_tensors_list[i].size(0)
-            prompt_len = prompt_token_tensors_list[i].size(0)
-            # Loss corresponds to predicting token i+1 given tokens 0..i
-            # We want loss for predicting target tokens, which start at index `prompt_len`
-            # The relevant loss values are at indices `prompt_len-1` to `full_len-2`
-            # (inclusive start, exclusive end for slicing)
-            target_token_losses = all_losses_per_token[i][prompt_len - 1 : full_len - 1]
-            if target_token_losses.numel() > 0:
-                avg_loss = target_token_losses.mean().item()
-            else:
-                avg_loss = None  # Handle cases with empty targets if necessary
-            instance_losses.append(avg_loss)
-
+        instance_losses = target.loss(
+            loss_full_token_tensors_list,
+            generation_prompt_token_tensors_list,
+            initial_batch_size=B,
+            verbose=True,
+        )
         t_end_loss = time.time()
         loss_time_total = t_end_loss - t_start_loss
 
         # --- 3. Generate Completions ---
         t_start_gen = time.time()
-        completions = generate_ragged_batched(
-            model,
-            tokenizer,
-            token_list=prompt_token_tensors_list,  # Generate from the prompt tokens
+        generation_result = target.generate(
+            generation_conversations,
             max_new_tokens=self.config.generation_config.max_new_tokens,
             temperature=self.config.generation_config.temperature,
             top_p=self.config.generation_config.top_p,
@@ -174,6 +164,8 @@ class InpaintingAttack(Attack):
             initial_batch_size=B,
             verbose=True,
         )
+        completions = generation_result.gen
+        generation_input_ids = generation_result.require_input_ids("Inpainting", expected_len=B)
         t_end_gen = time.time()
         gen_time_total = t_end_gen - t_start_gen
 
@@ -187,23 +179,22 @@ class InpaintingAttack(Attack):
             original_prompt = original_conversations[i]
             for j in range(inpainting_prompts_per_prompt):
                 idx = i * inpainting_prompts_per_prompt + j
-                model_input = copy.deepcopy(input_conversations[idx])
-                model_input[-1]["content"] = ""
+                model_input = copy.deepcopy(generation_conversations[idx])
                 model_completions = completions[idx]
                 loss = instance_losses[idx]
-
-                # Get token lists (convert tensors to lists of ints)
-                model_input_tokens = prompt_token_tensors_list[idx].tolist()
+                model_input_tokens = generation_input_ids[idx]
 
                 # Create the result for this inpainting attack step
                 step_result = AttackStepResult(
                     step=j,
                     model_completions=model_completions,
+                    model_completions_raw=generation_result.raw_for(idx),
                     time_taken=(t1 - t0) / B,
                     loss=loss,
                     flops=0,
                     model_input=model_input,
                     model_input_tokens=model_input_tokens,
+                    defense_metadata=generation_result.defense_metadata_for(idx),
                 )
                 step_results.append(step_result)
 

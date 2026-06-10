@@ -259,7 +259,13 @@ class GCGAttack(Attack):
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
 
-    def run(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizerBase, dataset: PromptDataset) -> AttackResult:
+    def run(
+        self,
+        target,
+        dataset: PromptDataset,
+    ) -> AttackResult:
+        model = target.model
+        tokenizer = target.tokenizer
         self.tokenizer = tokenizer  # Store tokenizer as instance variable
         self.not_allowed_ids = get_disallowed_ids(tokenizer, self.config.allow_non_ascii, self.config.allow_special).to(model.device)
         # need to have this filter here for models like gemma-3 which add extra tokens that do not have embeddings

@@ -23,6 +23,7 @@ import transformers
 from beartype import beartype
 from dotenv import load_dotenv
 
+from ..defenses import TargetSystem
 from ..io_utils import load_model_and_tokenizer
 from ..lm_utils import (
     APITextGenerator,
@@ -110,15 +111,14 @@ class CrescendoAttack(Attack[CrescendoAttackResult]):
 
     def run(
         self,
-        model: transformers.AutoModelForCausalLM,
-        tokenizer: transformers.AutoTokenizer,
+        target: TargetSystem,
         dataset: torch.utils.data.Dataset,
     ) -> CrescendoAttackResult:
         load_dotenv(override=True)
         base_url = os.getenv("BASE_URL_GPT")
         logging.info(f"BASE_URL_GPT: {repr(base_url)}")
 
-        target_model, attack_model = self.setup_models(model, tokenizer)
+        target_model, attack_model = self.setup_models(target)
         data = list(dataset)
         test_cases = [
             {
@@ -146,13 +146,8 @@ class CrescendoAttack(Attack[CrescendoAttackResult]):
 
     def setup_models(
         self,
-        model: transformers.AutoModelForCausalLM,
-        tokenizer: transformers.AutoTokenizer,
-    ) -> tuple[TextGenerator, TextGenerator]:
-        # target
-        target_generate_kwargs = {**self.target_generation_config, "filters": self.free_gen_repetition_filters}
-        target = LocalTextGenerator(model, tokenizer, default_generate_kwargs=target_generate_kwargs)
-
+        target: TargetSystem,
+    ) -> tuple[TargetSystem, TextGenerator]:
         # attacker
         if self.attack_model_config.use_api:
             attack_generate_kwargs = {**self.attack_generation_config}
@@ -162,8 +157,8 @@ class CrescendoAttack(Attack[CrescendoAttackResult]):
                 default_generate_kwargs=attack_generate_kwargs,
             )
         else:
-            if self.attack_model_config.id == model.model.name_or_path:
-                attack_model, attack_tokenizer = model, tokenizer
+            if self.attack_model_config.id == target.model.model.name_or_path:
+                attack_model, attack_tokenizer = target.model, target.tokenizer
             else:
                 attack_model, attack_tokenizer = load_model_and_tokenizer(self.attack_model_config)
 
@@ -178,7 +173,7 @@ class CrescendoAttack(Attack[CrescendoAttackResult]):
     def run_crescendomation(
         self,
         test_cases: list[dict],
-        target_model: TextGenerator,
+        target_model: TargetSystem,
         attack_model: TextGenerator,
         max_backtracks: int,
     ):
@@ -258,6 +253,7 @@ class CrescendoAttack(Attack[CrescendoAttackResult]):
                 prompts,
                 filters=self.free_gen_repetition_filters,
                 context="crescendo_target_step",
+                generate_kwargs=dict(self.target_generation_config),
             )
             input_ids = [conv[-1].get("input_ids") if conv else None for conv in active_conv_t_list]
             for round_number, conv_a, response_summary in zip(
@@ -509,9 +505,11 @@ def create_attack_step_results_from_convs(convs: list[Conversation]) -> list[lis
                 step = AttackStepResult(
                     step=len(steps),
                     model_completions=[message["content"]],
+                    model_completions_raw=[message["raw_content"]] if "raw_content" in message else None,
                     scores={"crescendo_judge": {"score": [float(message["score"])]}},
                     model_input=[{k: d[k] for k in ("role", "content") if k in d} for d in conv[:j]],
                     model_input_tokens=message.get("input_ids", None),
+                    defense_metadata=[message["defense_metadata"]] if "defense_metadata" in message else None,
                 )
                 steps.append(step)
         samples_list.append(steps)

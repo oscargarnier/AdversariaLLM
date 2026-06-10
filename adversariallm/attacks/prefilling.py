@@ -29,10 +29,11 @@ class PrefillingAttack(Attack):
     @torch.no_grad()
     def run(
         self,
-        model: PreTrainedModel,
-        tokenizer: PreTrainedTokenizerBase,
+        target,
         dataset: PromptDataset,
     ) -> AttackResult:
+        model = target.model
+        tokenizer = target.tokenizer
         t_start = time.time()
         token_list = []
         original_conversations = []
