@@ -184,8 +184,8 @@ class LocalRetryPolicy:
 
 @dataclass
 class RetryPolicy:
-    api: APIRetryPolicy = APIRetryPolicy()
-    local: LocalRetryPolicy = LocalRetryPolicy()
+    api: APIRetryPolicy = field(default_factory=APIRetryPolicy)
+    local: LocalRetryPolicy = field(default_factory=LocalRetryPolicy)
 
     def merge(self, overrides: Optional[RetryOverrides]) -> "RetryPolicy":
         return RetryPolicy(
