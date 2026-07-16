@@ -17,8 +17,7 @@ from run_judges import run_judges
 
 torch.use_deterministic_algorithms(True, warn_only=True)
 torch.backends.cuda.matmul.allow_tf32 = True
-torch._dynamo.config.recompile_limit = 512  # needed for gemma 3 on AutoDAN
-
+torch._dynamo.config.cache_size_limit = 512 # needed for gemma 3 on AutoDAN
 
 def select_configs(cfg: DictConfig, name: str | ListConfig | None) -> list[tuple[str, DictConfig]]:
     if name is not None:
