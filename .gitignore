@@ -13,3 +13,4 @@ viz
 wandb
 embeddings/
 .env
+env_data/
