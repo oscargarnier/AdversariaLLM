@@ -1,9 +1,6 @@
 import json
 import matplotlib.pyplot as plt
-
-file = "outputs/2026-07-16/11-11-59/0/run.json"
-with open(file, "r") as f:
-    results = json.load(f)
+import argparse
 
 def print_dic(dic):
     for key, value in dic.items():
@@ -34,10 +31,20 @@ def get_best_score_index(steps, judge_name):
     best_index = values.index(max(values))
     return best_index
 
-runs = results["runs"]
-run = runs[0]
-steps = run["steps"]
-index = get_best_score_index(steps, "strong_reject")
+if __name__ == "__main__":
+    argpaser = argparse.ArgumentParser()
+    argpaser.add_argument("--file", type=str, required=True, help="Path to the JSON file containing the results.")
+    args = argpaser.parse_args()
 
-print(f"Best step index: {index}")
-pretty_print_jailbreak(steps[index])
+    with open(args.file, "r") as f:
+        results = json.load(f)
+
+    runs = results["runs"]
+    run = runs[0]
+    steps = run["steps"]
+    index = get_best_score_index(steps, "strong_reject")
+
+
+
+    print(f"Best step index: {index}")
+    pretty_print_jailbreak(steps[index])
