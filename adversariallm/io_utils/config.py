@@ -21,11 +21,32 @@ class RunConfig:
     dataset_params: dict
     attack_params: dict
     defense_params: dict | None = None
+    runtime_defense: str | None = None
+    runtime_defense_params: dict | None = None
+
+    def to_attack_config(self) -> dict:
+        config = OmegaConf.to_container(OmegaConf.structured(self), resolve=True)
+        config.pop("runtime_defense", None)
+        config.pop("runtime_defense_params", None)
+        return config
+
+    def to_mongo_config(self) -> dict:
+        config = OmegaConf.to_container(OmegaConf.structured(self), resolve=True)
+        if self.runtime_defense is None and self.runtime_defense_params is None:
+            config.pop("runtime_defense", None)
+            config.pop("runtime_defense_params", None)
+        return config
 
 
 def filter_config(run_config: RunConfig, dset_len: int, overwrite: bool = False) -> RunConfig | None:
     db = get_mongodb_connection()
     collection = db.runs
+
+    if run_config.runtime_defense is not None or run_config.runtime_defense_params is not None:
+        raise ValueError(
+            "filter_config only accepts attack-compute runs; runtime defense fields must be absent. "
+            "Use filter_config_for_runtime for runtime-inference experiments."
+        )
 
     OmegaConf.resolve(run_config.attack_params)
     if run_config.defense_params is not None:
@@ -44,9 +65,50 @@ def filter_config(run_config: RunConfig, dset_len: int, overwrite: bool = False)
     filtered_idx = []
     for i in idx:
         run_config.dataset_params.idx = i
-        config_data = OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True)
+        config_data = run_config.to_mongo_config()
         if not overwrite and collection.find_one({"config": config_data}):
             print(f"Skipping {run_config.model} {run_config.dataset} {run_config.attack} idx={i} because it already exists at {collection.find_one({'config': config_data})['log_file']}")
+            continue
+        filtered_idx.append(i)
+
+    if not filtered_idx:
+        return None
+    run_config.dataset_params.idx = filtered_idx
+    return run_config
+
+def filter_config_for_runtime(run_config: RunConfig, dset_len: int, overwrite: bool = False) -> RunConfig | None:
+    db = get_mongodb_connection()
+    collection = db.runs
+
+    OmegaConf.resolve(run_config.attack_params)
+    if run_config.defense_params is not None:
+        OmegaConf.resolve(run_config.defense_params)
+    if run_config.runtime_defense_params is not None:
+        OmegaConf.resolve(run_config.runtime_defense_params)
+    OmegaConf.resolve(run_config.dataset_params)
+    OmegaConf.resolve(run_config.model_params)
+    original_idx = run_config.dataset_params.idx
+
+    if original_idx is None:
+        idx = list(range(dset_len))
+    elif isinstance(original_idx, int):
+        idx = [original_idx]
+    else:
+        idx = original_idx
+
+    filtered_idx = []
+    for i in idx:
+        run_config.dataset_params.idx = i
+        attack_config = run_config.to_attack_config()
+        attack_config.pop("defense", None)
+        attack_config.pop("defense_params", None)
+        runtime_config = run_config.to_mongo_config()
+        attack_doc = collection.find_one({"config": attack_config})
+        if attack_doc is None:
+            print(f"Skipping {run_config.model} {run_config.dataset} {run_config.attack} idx={i} because the source attack run was not found")
+            continue
+        if not overwrite and collection.find_one({"config": runtime_config}):
+            print(f"Skipping {run_config.model} {run_config.dataset} {run_config.attack} idx={i} because runtime inference already exists at {collection.find_one({'config': runtime_config})['log_file']}")
             continue
         filtered_idx.append(i)
 

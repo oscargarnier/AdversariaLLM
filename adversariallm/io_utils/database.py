@@ -45,7 +45,7 @@ def log_config_to_db(run_config, result, log_file):
     for i in idx:
         run_config.dataset_params.idx = i
         config_data = {
-            "config": OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True),
+            "config": run_config.to_mongo_config() if hasattr(run_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True),
             "log_file": log_file,
             "scored_by": []
         }

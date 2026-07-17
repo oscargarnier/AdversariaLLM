@@ -54,7 +54,7 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
         OmegaConf.resolve(subrun_config.dataset_params)
         OmegaConf.resolve(subrun_config.model_params)
         log_message = {
-            "config": OmegaConf.to_container(OmegaConf.structured(subrun_config), resolve=True)
+            "config": subrun_config.to_mongo_config() if hasattr(subrun_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(subrun_config), resolve=True)
         }
         offload_tensors(subrun_config, subrun_result, embed_dir)
 
