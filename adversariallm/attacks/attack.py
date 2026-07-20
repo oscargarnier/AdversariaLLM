@@ -76,10 +76,10 @@ class SingleInferenceResult:
     # results in the future.
     attack_artifact: str 
 
+    output: str
     # Results for each step of the attack
     defense: Optional[str] = None
 
-    output: str
     # Total time taken for this entire attack run on a **single instance**
     total_time: float = 0.0
 
