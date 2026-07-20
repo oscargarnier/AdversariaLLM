@@ -11,7 +11,7 @@ from typing import Callable
 import torch
 from tqdm import tqdm
 
-from ..io_utils import free_vram
+from ..io_utils.memory import free_vram
 
 
 def with_max_batchsize(function: Callable, *inputs, initial_batch_size: int | None = None, verbose: bool = False, success_threshold: int = 64):

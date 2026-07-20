@@ -3,7 +3,6 @@ from abc import abstractmethod
 from datetime import time
 from typing import TYPE_CHECKING, Any, List, Union
 
-from adversariallm import attacks
 from adversariallm.lm_utils.tokenization import prepare_conversation
 from torch import Tensor
 import transformers
@@ -254,7 +253,6 @@ class Attack(Generic[AttRes]):
             ## Tokens outputs 6 elements, split into 5 for the prompt, and 1 for the assistant message. 
             ## We only want to sample the prompt, so we take the first 5 elements.
             token_list.append(torch.cat(tokens[:5]))
-            attack_conversations.append(attack_conversation)
 
         batch_completions = generate_ragged_batched(
             target.model,
