@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Union
+from datetime import time
+from typing import TYPE_CHECKING, Any, List, Union
 
+from adversariallm import attacks
+from adversariallm.lm_utils.tokenization import prepare_conversation
 from torch import Tensor
 import transformers
 from beartype import beartype
@@ -9,7 +12,7 @@ from beartype.typing import Literal, Optional, Generic, TypeVar
 
 from ..dataset import PromptDataset
 from ..types import Conversation
-
+from ..lm_utils import generate_ragged_batched 
 if TYPE_CHECKING:
     from ..defenses import TargetSystem
 
@@ -63,6 +66,34 @@ class AttackStepResult:
 
     # Optional defense metadata (kept optional for backward compatibility).
     defense_metadata: Optional[list[dict[str, Any]]] = None
+
+@beartype
+@dataclass
+class SingleInferenceResult:
+    """Stores the results of a single inference run on an attack artifact."""
+    # The original multi-turn conversation from the dataset
+    # We include the target response (usually `Sure, here's how to...`) as the
+    # assistant message in the original conversation to make it easier to reproduce
+    # results in the future.
+    attack_artifact: str 
+
+    # Results for each step of the attack
+    defense: Optional[str] = None
+
+    output: str
+    # Total time taken for this entire attack run on a **single instance**
+    total_time: float = 0.0
+
+@beartype
+@dataclass
+class InferenceResult:
+    """Stores the results for inference run on an attack artifact
+
+    Contains a list of single inference result objects, one for each instance
+    in the dataset processed.
+    """
+    runs: list[SingleInferenceResult] = field(default_factory=list)
+
 
 
 @beartype
@@ -182,6 +213,84 @@ class Attack(Generic[AttRes]):
             case _:
                 raise ValueError(f"Unknown attack: {name}")
 
+
+    def run_inference_batch(
+            self,
+            target: "TargetSystem",
+            runs: List[Conversation],
+    ):
+        """Run inference with the successful attack artifact on a batch of conversations.
+
+        This is used for runtime defenses, where we want to run inference on the
+        original prompt and the attacked prompt, and compare the results.
+
+        Args:
+            target: The target system to attack.
+            runs: The list of original conversations to attack.
+
+        Returns:
+            The result of running inference on the attacked prompt.
+        """
+        # ===== Identify the best step for each run based on the loss =====
+        model_inputs = []
+        for run in runs:
+            losses = [step.loss for step in run.steps if step.loss is not None]
+            best_loss_index = argmin(losses) if losses else None
+            if best_loss_index is not None:
+                best_step = run.steps[best_loss_index]
+            else:
+                print("No loss available for any step, using last step as fallback.")
+                best_step = run.steps[-1]  # Fallback to the last step if no loss is available
+            model_input = best_step.model_input
+            model_inputs.append(model_input)
+
+
+        for model_input in model_inputs:
+            attack_conversation = [
+                {"role": "user", "content": model_input},
+                {"role": "assistant", "content": ""},
+            ]
+            tokens = prepare_conversation(target.tokenizer, conversation, attack_conversation)[0]
+            ## Tokens outputs 6 elements, split into 5 for the prompt, and 1 for the assistant message. 
+            ## We only want to sample the prompt, so we take the first 5 elements.
+            token_list.append(torch.cat(tokens[:5]))
+            attack_conversations.append(attack_conversation)
+
+        batch_completions = generate_ragged_batched(
+            target.model,
+            target.tokenizer,
+            token_list=token_list,
+            initial_batch_size=len(token_list),
+            max_new_tokens=self.config.generation_config.max_new_tokens,
+            temperature=self.config.generation_config.temperature,
+            top_p=self.config.generation_config.top_p,
+            top_k=self.config.generation_config.top_k,
+            num_return_sequences=self.config.generation_config.num_return_sequences,
+        )  # (N_steps, N_return_sequences, T)
+
+
+        return batch_completions
+
+
+    def run_inference(
+        self,
+        target: "TargetSystem",
+        attack_artifacts: AttackResult
+    ) -> InferenceOutput:
+        """Run inference with the successful attack artifact
+
+        """
+        batch_size = self.config.generation_config.inference_batch_size
+        outputs = []
+        for i in range(0, len(attack_artifacts.runs), batch_size):
+            batch_attack_runs = attack_artifacts.runs[i:i + batch_size]
+            batch_outputs = self.run_inference_batch(target, batch_attack_runs)
+            outputs.extend(batch_outputs)
+        
+        return InferenceOutput(outputs)
+
+        
+    
     @abstractmethod
     def run(
         self,

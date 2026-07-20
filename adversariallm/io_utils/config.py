@@ -20,12 +20,14 @@ class RunConfig:
     model_params: dict
     dataset_params: dict
     attack_params: dict
+    experiment_type: str = "attack_compute"
     defense_params: dict | None = None
     runtime_defense: str | None = None
     runtime_defense_params: dict | None = None
 
     def to_attack_config(self) -> dict:
         config = OmegaConf.to_container(OmegaConf.structured(self), resolve=True)
+        config["experiment_type"] = "attack_compute"
         config.pop("runtime_defense", None)
         config.pop("runtime_defense_params", None)
         return config
@@ -42,6 +44,8 @@ def filter_config(run_config: RunConfig, dset_len: int, overwrite: bool = False)
     db = get_mongodb_connection()
     collection = db.runs
 
+    if run_config.experiment_type != "attack_compute":
+        raise ValueError("filter_config only accepts attack_compute experiments")
     if run_config.runtime_defense is not None or run_config.runtime_defense_params is not None:
         raise ValueError(
             "filter_config only accepts attack-compute runs; runtime defense fields must be absent. "
@@ -80,6 +84,9 @@ def filter_config_for_runtime(run_config: RunConfig, dset_len: int, overwrite: b
     db = get_mongodb_connection()
     collection = db.runs
 
+    if run_config.experiment_type != "runtime_inference":
+        raise ValueError("filter_config_for_runtime only accepts runtime_inference experiments")
+
     OmegaConf.resolve(run_config.attack_params)
     if run_config.defense_params is not None:
         OmegaConf.resolve(run_config.defense_params)
@@ -100,8 +107,6 @@ def filter_config_for_runtime(run_config: RunConfig, dset_len: int, overwrite: b
     for i in idx:
         run_config.dataset_params.idx = i
         attack_config = run_config.to_attack_config()
-        attack_config.pop("defense", None)
-        attack_config.pop("defense_params", None)
         runtime_config = run_config.to_mongo_config()
         attack_doc = collection.find_one({"config": attack_config})
         if attack_doc is None:

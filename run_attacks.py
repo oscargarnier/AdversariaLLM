@@ -46,14 +46,15 @@ def collect_configs(cfg: DictConfig) -> list[RunConfig]:
             for attack, attack_params in attacks_to_run:
                 for defense, defense_params in defenses_to_run:
                     run_config = RunConfig(
-                        model,
-                        dataset,
-                        attack,
-                        None if defense == "none" else defense,
-                        model_params,
-                        dataset_params,
-                        attack_params,
-                        None if defense == "none" else defense_params,
+                        experiment_type="attack_compute",
+                        model=model,
+                        dataset=dataset,
+                        attack=attack,
+                        defense=None if defense == "none" else defense,
+                        model_params=model_params,
+                        dataset_params=dataset_params,
+                        attack_params=attack_params,
+                        defense_params=None if defense == "none" else defense_params,
                     )
                     run_config = filter_config(run_config, dset_len, overwrite=cfg.overwrite)
                     if run_config is not None:

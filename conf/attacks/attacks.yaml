@@ -79,6 +79,7 @@ ample_gcg:
       max_new_tokens: 20
       min_new_tokens: 20
       diversity_penalty: 1.0
+      inference_batch_size: 4
 autodan:
   name: autodan
   type: discrete

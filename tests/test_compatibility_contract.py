@@ -40,6 +40,7 @@ def test_run_config_separates_attack_and_runtime_defense_configs(monkeypatch):
         model_params={"id": "m"},
         dataset_params=OmegaConf.create({"idx": [0]}),
         attack_params={"name": "a"},
+        experiment_type="runtime_inference",
         runtime_defense="polyguard",
         runtime_defense_params={"name": "polyguard"},
     )
@@ -47,8 +48,10 @@ def test_run_config_separates_attack_and_runtime_defense_configs(monkeypatch):
     attack_config = run_config.to_attack_config()
     runtime_config = run_config.to_mongo_config()
 
+    assert attack_config["experiment_type"] == "attack_compute"
     assert "runtime_defense" not in attack_config
     assert "runtime_defense_params" not in attack_config
+    assert runtime_config["experiment_type"] == "runtime_inference"
     assert runtime_config["runtime_defense"] == "polyguard"
     assert runtime_config["runtime_defense_params"]["name"] == "polyguard"
 
@@ -81,6 +84,7 @@ def test_filter_config_rejects_runtime_defense_fields(monkeypatch):
         model_params={"id": "m"},
         dataset_params=OmegaConf.create({"idx": [0]}),
         attack_params={"name": "a"},
+        experiment_type="runtime_inference",
         runtime_defense="polyguard",
         runtime_defense_params={"name": "polyguard"},
     )

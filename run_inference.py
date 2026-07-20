@@ -12,7 +12,7 @@ from adversariallm.attacks import Attack, AttackResult
 from adversariallm.dataset import PromptDataset
 from adversariallm.defenses import build_target_system, validate_defense_compatibility
 from adversariallm.errors import print_exceptions
-from adversariallm.io_utils import RunConfig, filter_config, free_vram, load_model_and_tokenizer, log_attack, filter_config_for_runtime
+from adversariallm.io_utils import RunConfig, filter_config, free_vram, get_mongodb_connection, load_model_and_tokenizer, log_attack, filter_config_for_runtime, load_attack_results, log_inference
 from run_judges import run_judges
 
 torch.use_deterministic_algorithms(True, warn_only=True)
@@ -50,16 +50,17 @@ def collect_configs(cfg: DictConfig) -> list[RunConfig]:
                 for attack_defense, attack_defense_params in attack_defenses_to_run:
                     for runtime_defense, runtime_defense_params in runtime_defenses_to_run:
                         run_config = RunConfig(
-                            model,
-                            dataset,
-                            attack,
-                            None if attack_defense == "none" else attack_defense,
-                            model_params,
-                            dataset_params,
-                            attack_params,
-                            None if attack_defense == "none" else attack_defense_params,
-                            None if runtime_defense == "none" else runtime_defense,
-                            None if runtime_defense == "none" else runtime_defense_params,
+                            experiment_type="runtime_inference",
+                            model=model,
+                            dataset=dataset,
+                            attack=attack,
+                            defense=None if attack_defense == "none" else attack_defense,
+                            model_params=model_params,
+                            dataset_params=dataset_params,
+                            attack_params=attack_params,
+                            defense_params=None if attack_defense == "none" else attack_defense_params,
+                            runtime_defense=None if runtime_defense == "none" else runtime_defense,
+                            runtime_defense_params=None if runtime_defense == "none" else runtime_defense_params,
                         )
                         ## This serves two purposes:
                         ## Confirm that the original attack, in this scenario, has in fact been computed
@@ -72,7 +73,8 @@ def collect_configs(cfg: DictConfig) -> list[RunConfig]:
     return all_run_configs
 
 
-def run_attacks(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_string: str) -> None:
+
+def run_inferences(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_string: str) -> None:
     last_model = None
     last_dataset = None
     last_attack = None
@@ -101,10 +103,17 @@ def run_attacks(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_str
             model=model,
             tokenizer=tokenizer,
         )
-        ## This is where the attack is actually run
-        results = attack.run(target, dataset)  # type: ignore
 
-        log_attack(run_config, results, cfg, date_time_string)
+        attack_config = run_config.to_attack_config()
+        attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
+        if attack_doc is None:
+            raise ValueError("Source attack run was not found for runtime inference")
+
+        attack_artifacts = load_attack_results(attack_doc["log_file"])
+        results = attack.run_inference(target, attack_artifacts)  # type: ignore
+
+        log_inference(run_config, results, cfg, date_time_string)
+
 
 
 @hydra.main(config_path="./conf", config_name="config", version_base="1.3")
@@ -125,7 +134,7 @@ def main(cfg: DictConfig) -> None:
     all_run_configs = collect_configs(cfg)
 
     # 2. Run the attacks
-    run_attacks(all_run_configs, cfg, date_time_string)
+    run_inferences(all_run_configs, cfg, date_time_string)
     # 3. Run the judges
     if judges_to_run is None:
         return

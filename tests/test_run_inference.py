@@ -32,6 +32,7 @@ def test_collect_configs_cross_products_attack_and_runtime_defenses(monkeypatch)
             "attack": "a",
             "defense": None,
             "runtime_defense": None,
+            "experiment_type": "runtime_inference",
             "overwrite": True,
         }
     )
@@ -39,5 +40,6 @@ def test_collect_configs_cross_products_attack_and_runtime_defenses(monkeypatch)
     run_configs = run_inference.collect_configs(cfg)
 
     assert len(run_configs) == 4
+    assert {rc.experiment_type for rc in run_configs} == {"runtime_inference"}
     assert {rc.defense for rc in run_configs} == {None, "polyguard"}
     assert {rc.runtime_defense for rc in run_configs} == {None, "polyguard"}

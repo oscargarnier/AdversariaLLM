@@ -76,3 +76,44 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
             json.dump(log_message, f, indent=2, cls=CompactJSONEncoder)
         logging.info(f"Attack logged to {log_file}")
         log_config_to_db(subrun_config, subrun_result, log_file)
+
+
+## TODO theres a good chance this is too simple
+def load_attack_results(log_file: str) -> AttackResult:
+    """Load attack results from a JSON file."""
+    with open(log_file, "r") as f:
+        data = json.load(f)
+    return AttackResult(**data)
+
+def log_inference(run_config, results, cfg, date_time_string):
+    """Logs the inference results to a JSON file and MongoDB."""
+    save_dir = cfg.inference_save_dir
+    embed_dir = cfg.embed_dir
+
+    # Create a structured log message as a JSON object
+    OmegaConf.resolve(run_config.attack_params)
+    OmegaConf.resolve(run_config.dataset_params)
+    OmegaConf.resolve(run_config.model_params)
+    log_message = {
+        "config": run_config.to_mongo_config() if hasattr(run_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True)
+    }
+    offload_tensors(run_config, results, embed_dir)
+
+    log_message.update(asdict(results))
+    # Find and reserve the first available run_i directory atomically.
+    i = 0
+    log_dir = os.path.join(save_dir, date_time_string)
+    while True:
+        run_dir = os.path.join(log_dir, str(i))
+        try:
+            os.makedirs(run_dir, exist_ok=False)
+            break
+        except FileExistsError:
+            i += 1
+    log_file = os.path.join(run_dir, "run.json")
+
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    with open(log_file, "w") as f:
+        json.dump(log_message, f, indent=2, cls=CompactJSONEncoder)
+    logging.info(f"Inference logged to {log_file}")
+    log_config_to_db(run_config, results, log_file)

@@ -142,6 +142,7 @@ def main(cfg: DictConfig) -> None:
                 model_params=OmegaConf.structured(attack_run["config"]["model_params"]),
                 dataset_params=OmegaConf.structured(attack_run["config"]["dataset_params"]),
                 attack_params=OmegaConf.structured(attack_run["config"]["attack_params"]),
+                experiment_type="attack_compute",
             )
 
             run_config = filter_config(run_config, -1)
