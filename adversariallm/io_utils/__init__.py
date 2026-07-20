@@ -79,6 +79,7 @@ __all__ = [
     # Configuration
     'RunConfig',
     'filter_config',
+    'filter_config_for_runtime',
 
     # Packaged resources
     'packaged_conf_dir',
