@@ -5,6 +5,8 @@ This module provides functions for logging attack results to JSON files
 and managing tensor offloading for large model embeddings.
 """
 
+from __future__ import annotations
+
 import copy
 import hashlib
 import json
@@ -15,7 +17,6 @@ from dataclasses import asdict
 import safetensors.torch
 from omegaconf import DictConfig, OmegaConf
 
-from ..attacks import AttackResult
 from .database import log_config_to_db
 from .json_utils import CompactJSONEncoder
 
@@ -42,6 +43,8 @@ def offload_tensors(run_config, result: AttackResult, embed_dir: str):
 
 def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_string: str):
     """Logs the attack results to a JSON file and MongoDB."""
+    from ..attacks.attack import AttackResult
+
     save_dir = cfg.save_dir
     embed_dir = cfg.embed_dir
     for idx, run in enumerate(result.runs):
@@ -81,6 +84,8 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
 ## TODO theres a good chance this is too simple
 def load_attack_results(log_file: str) -> AttackResult:
     """Load attack results from a JSON file."""
+    from ..attacks.attack import AttackResult
+
     with open(log_file, "r") as f:
         data = json.load(f)
     return AttackResult(**data)
