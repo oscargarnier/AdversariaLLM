@@ -41,7 +41,7 @@ from .data_analysis import (
 from .memory import free_vram
 
 # Configuration utilities
-from .config import RunConfig, filter_config
+from .config import RunConfig, filter_config, filter_config_for_runtime
 from .resources import packaged_conf_dir, packaged_chat_templates_dir
 
 __all__ = [
