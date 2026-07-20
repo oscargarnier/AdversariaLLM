@@ -105,11 +105,14 @@ def run_inferences(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_
         )
 
         attack_config = run_config.to_attack_config()
-        attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
+        #attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
+        stored = db.runs.find_one({"_id": "6a5e2363daff8c6f4788312e"})  # find it by something else first, e.g. a timestamp or run name
+        print(f"===== stored config =====\n {stored['config']}")
+        print(f"===== attack config =====\n {attack_config}")
         if attack_doc is None:
             raise ValueError("Source attack run was not found for runtime inference")
 
-        attack_artifacts = load_attack_results(attack_doc["log_file"])
+        attack_artifacts = load_attack_results(attack_doc["log_file"])t
         results = attack.run_inference(target, attack_artifacts)  # type: ignore
 
         log_inference(run_config, results, cfg, date_time_string)
