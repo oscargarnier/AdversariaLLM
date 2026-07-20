@@ -68,7 +68,7 @@ class AttackStepResult:
 
 @beartype
 @dataclass
-class SingleInferenceResult:
+class SingleInferenceOutput:
     """Stores the results of a single inference run on an attack artifact."""
     # The original multi-turn conversation from the dataset
     # We include the target response (usually `Sure, here's how to...`) as the
@@ -85,13 +85,13 @@ class SingleInferenceResult:
 
 @beartype
 @dataclass
-class InferenceResult:
+class InferenceOutput:
     """Stores the results for inference run on an attack artifact
 
-    Contains a list of single inference result objects, one for each instance
+    Contains a list of SingleInferenceOutput objects, one for each instance
     in the dataset processed.
     """
-    runs: list[SingleInferenceResult] = field(default_factory=list)
+    runs: list[SingleInferenceOutput] = field(default_factory=list)
 
 
 
