@@ -84,11 +84,16 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
 ## TODO theres a good chance this is too simple
 def load_attack_results(log_file: str) -> AttackResult:
     """Load attack results from a JSON file."""
-    from ..attacks.attack import AttackResult
+    from ..attacks.attack import AttackResult, SingleRunAttackResult
 
     with open(log_file, "r") as f:
         data = json.load(f)
-    return AttackResult(**data)
+    attack_results = []
+    for results in data:
+        attack_results.append(SingleRunAttackResult(**results)) 
+
+    return AttackResult(attack_results)
+
 
 def log_inference(run_config, results, cfg, date_time_string):
     """Logs the inference results to a JSON file and MongoDB."""
