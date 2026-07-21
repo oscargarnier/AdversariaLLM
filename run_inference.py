@@ -142,18 +142,20 @@ def main(cfg: DictConfig) -> None:
     # 2. Run the attacks
     run_inferences(all_run_configs, cfg, date_time_string)
     # 3. Run the judges
-    if judges_to_run is None:
-        return
-    for judge in judges_to_run:
-        # Create judge config
-        judge_cfg = OmegaConf.create({
-            "classifier": judge,
-            "suffixes": [date_time_string.split('/')[-1]],  # Use the timestamp from this run to make sure we only judge this run
-            "filter_by": None
-        })
-        free_vram()
-        # Run the judge
-        run_judges(judge_cfg)
+    ## TODO setup judge running
+    if False:
+        if judges_to_run is None:
+            return
+        for judge in judges_to_run:
+            # Create judge config
+            judge_cfg = OmegaConf.create({
+                "classifier": judge,
+                "suffixes": [date_time_string.split('/')[-1]],  # Use the timestamp from this run to make sure we only judge this run
+                "filter_by": None
+            })
+            free_vram()
+            # Run the judge
+            run_judges(judge_cfg)
 
 if __name__ == "__main__":
     main()

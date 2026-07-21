@@ -118,7 +118,8 @@ def log_inference(run_config, results, cfg, date_time_string):
     log_message = {
         "config": run_config.to_mongo_config() if hasattr(run_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True)
     }
-    offload_tensors(run_config, results, embed_dir)
+    ## TODO make sure this was not important
+    #offload_tensors(run_config, results, embed_dir)
 
     log_message.update(asdict(results))
     # Find and reserve the first available run_i directory atomically.
