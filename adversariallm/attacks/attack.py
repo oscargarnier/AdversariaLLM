@@ -273,7 +273,7 @@ class Attack(Generic[AttRes]):
         outputs = []
         for i, attack_artifact in enumerate(attack_artifacts):
             single_output = SingleInferenceOutput(
-                attack_artifact=attack_artifact,
+                model_input=model_input,
                 output=batch_completions[i],
                 target_config=target.config,
                 total_time=0.0,  # Placeholder, can be updated with actual timing if needed
