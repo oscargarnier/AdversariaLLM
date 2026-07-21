@@ -250,7 +250,8 @@ class Attack(Generic[AttRes]):
                 {"role": "user", "content": model_input},
                 {"role": "assistant", "content": ""},
             ]
-            tokens = prepare_conversation(target.tokenizer, conversation, attack_conversation)[0]
+            ##TODO check if this call makes sense
+            tokens = prepare_conversation(target.tokenizer, attack_conversation, attack_conversation)[0]
             ## Tokens outputs 6 elements, split into 5 for the prompt, and 1 for the assistant message. 
             ## We only want to sample the prompt, so we take the first 5 elements.
             token_list.append(torch.cat(tokens[:5]))
