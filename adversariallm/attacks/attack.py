@@ -74,11 +74,11 @@ class SingleInferenceOutput:
     # We include the target response (usually `Sure, here's how to...`) as the
     # assistant message in the original conversation to make it easier to reproduce
     # results in the future.
-    attack_artifact: str 
+    text_input: str 
 
     output: str
     # Results for each step of the attack
-    defense: Optional[str] = None
+    target_config: Any
 
     # Total time taken for this entire attack run on a **single instance**
     total_time: float = 0.0
@@ -231,7 +231,7 @@ class Attack(Generic[AttRes]):
             The result of running inference on the attacked prompt.
         """
         # ===== Identify the best step for each run based on the loss =====
-        model_inputs = []
+        text_inputs = []
         for run in attack_artifacts:
             losses = [step.loss for step in run.steps if step.loss is not None]
             best_loss_index = np.argmin(losses) if losses else None
@@ -240,14 +240,14 @@ class Attack(Generic[AttRes]):
             else:
                 print("No loss available for any step, using last step as fallback.")
                 best_step = run.steps[-1]  # Fallback to the last step if no loss is available
-            model_input = best_step.model_input
-            model_inputs.append(model_input)
+            text_input = best_step.model_input[0]["content"]
+            text_inputs.append(text_input)
 
         token_list = []
         # ===== Prepare the model inputs for inference =====
-        for model_input in model_inputs:
+        for text_input in text_inputs:
             attack_conversation = [
-                {"role": "user", "content": model_input},
+                {"role": "user", "content": text_input},
                 {"role": "assistant", "content": ""},
             ]
             ##TODO check if this call makes sense
@@ -273,8 +273,8 @@ class Attack(Generic[AttRes]):
         outputs = []
         for i, attack_artifact in enumerate(attack_artifacts):
             single_output = SingleInferenceOutput(
-                model_input=model_input,
-                output=batch_completions[i],
+                text_input=text_input,
+                output=batch_completions[i][0],
                 target_config=target.config,
                 total_time=0.0,  # Placeholder, can be updated with actual timing if needed
             )
