@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from abc import abstractmethod
 from datetime import time
 from typing import TYPE_CHECKING, Any, List, Union
-
+import numpy as np
 from adversariallm.lm_utils.tokenization import prepare_conversation
 from torch import Tensor
 import transformers
@@ -232,9 +232,9 @@ class Attack(Generic[AttRes]):
         """
         # ===== Identify the best step for each run based on the loss =====
         model_inputs = []
-        for run in runs:
+        for run in attack_artifacts:
             losses = [step.loss for step in run.steps if step.loss is not None]
-            best_loss_index = argmin(losses) if losses else None
+            best_loss_index = np.argmin(losses) if losses else None
             if best_loss_index is not None:
                 best_step = run.steps[best_loss_index]
             else:
@@ -290,6 +290,7 @@ class Attack(Generic[AttRes]):
 
         """
         ## TODO add this to the config
+
         batch_size = 4
         outputs = []
         for i in range(0, len(attack_artifacts.runs), batch_size):
