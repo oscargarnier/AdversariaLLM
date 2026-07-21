@@ -95,7 +95,13 @@ def load_attack_results(log_file: str) -> AttackResult:
         steps = []
         for step in run["steps"]:
             steps.append(AttackStepResult(**step))
-        attack_results.append(SingleAttackRunResult(steps))
+            print(f"Built step: {steps[-1]}")
+        single_attack_run_result = SingleAttackRunResult(
+            original_prompt=run["original_prompt"],
+            steps=steps,
+            total_time = run.get("total_time", None)
+        )
+        attack_results.append(single_attack_run_result)
 
     return AttackResult(attack_results)
 
