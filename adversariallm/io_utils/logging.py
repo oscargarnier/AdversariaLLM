@@ -85,15 +85,17 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
 
 def load_attack_results(log_file: str) -> AttackResult:
     """Load attack results from a JSON file."""
-    from ..attacks.attack import AttackResult, SingleAttackRunResult
+    from ..attacks.attack import AttackResult, SingleAttackRunResult, AttackStepResult
 
     with open(log_file, "r") as f:
         data = json.load(f)
     attack_results = []
-    for run in data.runs:
+    for run in data["runs"]:
         print(f"Attempting to build from results: {run}")
-
-        attack_results.append(SingleAttackRunResult(**run)) 
+        steps = []
+        for step in run["steps"]:
+            steps.append(AttackStepResult(**step))
+        attack_results.append(SingleAttackRunResult(steps))
 
     return AttackResult(attack_results)
 

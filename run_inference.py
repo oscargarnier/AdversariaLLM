@@ -15,6 +15,7 @@ from adversariallm.errors import print_exceptions
 from adversariallm.io_utils import RunConfig, filter_config, free_vram, get_mongodb_connection, load_model_and_tokenizer, log_attack, filter_config_for_runtime, load_attack_results, log_inference
 from run_judges import run_judges
 
+from bson import ObjectId
 torch.use_deterministic_algorithms(True, warn_only=True)
 torch.backends.cuda.matmul.allow_tf32 = True
 torch._dynamo.config.cache_size_limit = 512 # needed for gemma 3 on AutoDAN
@@ -105,14 +106,16 @@ def run_inferences(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_
         )
 
         attack_config = run_config.to_attack_config()
-        #attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
-        stored = db.runs.find_one({"_id": "6a5e2363daff8c6f4788312e"})  # find it by something else first, e.g. a timestamp or run name
-        print(f"===== stored config =====\n {stored['config']}")
-        print(f"===== attack config =====\n {attack_config}")
+        if len(attack_config["dataset_params"]["idx"]) == 1:
+            attack_config["dataset_params"]["idx"] = attack_config["dataset_params"]["idx"][0]
+        attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
+        #stored = get_mongodb_connection().runs.find_one({"_id": ObjectId("6a5e2363daff8c6f4788312e")})  # find it by something else first, e.g. a timestamp or run name
+        #print(f"===== stored config =====\n {stored['config']}")
+        #print(f"===== attack config =====\n {attack_config}")
         if attack_doc is None:
             raise ValueError("Source attack run was not found for runtime inference")
 
-        attack_artifacts = load_attack_results(attack_doc["log_file"])t
+        attack_artifacts = load_attack_results(attack_doc["log_file"])
         results = attack.run_inference(target, attack_artifacts)  # type: ignore
 
         log_inference(run_config, results, cfg, date_time_string)
