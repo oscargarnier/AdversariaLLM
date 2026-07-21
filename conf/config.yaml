@@ -33,8 +33,8 @@ generation_config:
   num_return_sequences: 1
 
 # overrides for parallelism
-attack: null
+attack: gcg
 dataset: adv_behaviors
-model: null
+model: meta-llama/Meta-Llama-3.1-8B-Instruct 
 defense: none
 runtime_defense: none
