@@ -4,7 +4,7 @@ from datetime import time
 from typing import TYPE_CHECKING, Any, List, Union
 import numpy as np
 from adversariallm.lm_utils.tokenization import prepare_conversation
-from torch import Tensor
+from torch import Tensor, cat
 import transformers
 from beartype import beartype
 from beartype.typing import Literal, Optional, Generic, TypeVar
@@ -254,7 +254,7 @@ class Attack(Generic[AttRes]):
             tokens = prepare_conversation(target.tokenizer, attack_conversation, attack_conversation)[0]
             ## Tokens outputs 6 elements, split into 5 for the prompt, and 1 for the assistant message. 
             ## We only want to sample the prompt, so we take the first 5 elements.
-            token_list.append(torch.cat(tokens[:5]))
+            token_list.append(cat(tokens[:5]))
 
         # ===== Generate completions =====
         batch_completions = generate_ragged_batched(
