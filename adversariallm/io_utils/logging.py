@@ -90,8 +90,10 @@ def load_attack_results(log_file: str) -> AttackResult:
     with open(log_file, "r") as f:
         data = json.load(f)
     attack_results = []
-    for results in data:
-        attack_results.append(SingleAttackRunResult(**results)) 
+    for run in data.runs:
+        print(f"Attempting to build from results: {run}")
+
+        attack_results.append(SingleAttackRunResult(**run)) 
 
     return AttackResult(attack_results)
 
