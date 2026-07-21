@@ -216,7 +216,7 @@ class Attack(Generic[AttRes]):
     def run_inference_batch(
             self,
             target: "TargetSystem",
-            runs: List[Conversation],
+            attack_artifacts: List[Conversation],
     ):
         """Run inference with the successful attack artifact on a batch of conversations.
 
@@ -225,7 +225,7 @@ class Attack(Generic[AttRes]):
 
         Args:
             target: The target system to attack.
-            runs: The list of original conversations to attack.
+            attack_artifacts: The list of attack artifacts to use for inference.
 
         Returns:
             The result of running inference on the attacked prompt.
@@ -266,8 +266,17 @@ class Attack(Generic[AttRes]):
             num_return_sequences=self.config.generation_config.num_return_sequences,
         )  # (N_steps, N_return_sequences, T)
 
-
-        return batch_completions
+        #TODO Check what the target object is and save it in a smart way
+        outputs = []
+        for i, attack_artifact in enumerate(attack_artifacts):
+            single_output = SingleInferenceOutput(
+                attack_artifact=attack_artifact,
+                output=batch_completions[i],
+                target_config=target.config,
+                total_time=0.0,  # Placeholder, can be updated with actual timing if needed
+            )
+            outputs.append(single_output)
+        return outputs
 
 
     def run_inference(
@@ -281,8 +290,8 @@ class Attack(Generic[AttRes]):
         batch_size = self.config.generation_config.inference_batch_size
         outputs = []
         for i in range(0, len(attack_artifacts.runs), batch_size):
-            batch_attack_runs = attack_artifacts.runs[i:i + batch_size]
-            batch_outputs = self.run_inference_batch(target, batch_attack_runs)
+            batch_attack_artifacts= attack_artifacts.runs[i:i + batch_size]
+            batch_outputs = self.run_inference_batch(target, batch_attack_artifacts)
             outputs.extend(batch_outputs)
         
         return InferenceOutput(outputs)
