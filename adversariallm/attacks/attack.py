@@ -243,7 +243,8 @@ class Attack(Generic[AttRes]):
             model_input = best_step.model_input
             model_inputs.append(model_input)
 
-
+        token_list = []
+        # ===== Prepare the model inputs for inference =====
         for model_input in model_inputs:
             attack_conversation = [
                 {"role": "user", "content": model_input},
@@ -254,6 +255,7 @@ class Attack(Generic[AttRes]):
             ## We only want to sample the prompt, so we take the first 5 elements.
             token_list.append(torch.cat(tokens[:5]))
 
+        # ===== Generate completions =====
         batch_completions = generate_ragged_batched(
             target.model,
             target.tokenizer,
@@ -287,7 +289,8 @@ class Attack(Generic[AttRes]):
         """Run inference with the successful attack artifact
 
         """
-        batch_size = self.config.generation_config.inference_batch_size
+        ## TODO add this to the config
+        batch_size = 4
         outputs = []
         for i in range(0, len(attack_artifacts.runs), batch_size):
             batch_attack_artifacts= attack_artifacts.runs[i:i + batch_size]
