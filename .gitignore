@@ -14,3 +14,5 @@ wandb
 embeddings/
 .env
 env_data/
+jailbreaks
+infrerence_results/*

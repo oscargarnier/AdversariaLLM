@@ -316,13 +316,13 @@ class Attack(Generic[AttRes]):
             num_return_sequences=self.config.generation_config.num_return_sequences,
         )  # (N_steps, N_return_sequences, T)
 
-        #TODO Check what the target object is and save it in a smart way
+        #TODO Save experiment metadata in config
         outputs = []
         for i, attack_artifact in enumerate(attack_artifacts):
             single_output = SingleInferenceOutput(
                 text_input=text_input,
                 output=batch_completions[i][0],
-                target_config=target.config,
+                target_config=None,
                 total_time=0.0,  # Placeholder, can be updated with actual timing if needed
             )
             outputs.append(single_output)

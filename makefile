@@ -10,9 +10,7 @@ defense_test:
 	HYDRA_FULL_ERROR=1 python run_inference.py \
 	    model=meta-llama/Meta-Llama-3.1-8B-Instruct \
 	    dataset=adv_behaviors \
-	    datasets.adv_behaviors.idx=2 \
 	    attack=gcg \
-	    runtime_defense=polyguard
 	    
 
 pair_sr:
@@ -35,7 +33,6 @@ gcg_multirun:
 	HYDRA_FULL_ERROR=1 python run_attacks.py \
 		    model=$(CURRENT_TARGET_MODEL)
 		    dataset=adv_behaviors \
-		    datasets.adv_behaviors.idx="list(range(0,3))" \
 		    attack=gcg \
 
 
