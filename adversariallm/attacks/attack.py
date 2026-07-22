@@ -174,7 +174,7 @@ class Attack(Generic[AttRes]):
         log_file = os.path.join(storage_address, f"idx_{int(idx)}.json")
         with open(log_file, "w") as handle:
             json.dump(artifact, handle, cls=CompactJSONEncoder)
-
+        print(f"Stored results at adresss {log_file}")
         return log_file
 
     @classmethod
