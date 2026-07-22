@@ -92,7 +92,7 @@ def run_attacks(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_str
             tokenizer=tokenizer,
         )
         # Compute stoarage adress at this point:
-        storage_adress = f"jailbreaks/{run_config.model}/{run_config.dataset}/{run_config.attack}/{run_config.defense or 'none'}"
+        storage_adress = os.path.join(cfg.jailbreak_save_dir, run_config.model, run_config.dataset, run_config.attack, run_config.defense or 'none')
         if run_config.attack == "gcg":
             results = attack.run(target, dataset, storage_adress)  # type: ignore[arg-type]
         else:

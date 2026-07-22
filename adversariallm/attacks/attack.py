@@ -169,7 +169,6 @@ class Attack(Generic[AttRes]):
             "best_step_index": best_step_index,
             "best_step": self._jsonable(asdict(best_step)),
         }
-
         os.makedirs(storage_address, exist_ok=True)
         log_file = os.path.join(storage_address, f"idx_{int(idx)}.json")
         with open(log_file, "w") as handle:
