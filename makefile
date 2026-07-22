@@ -1,7 +1,7 @@
 CURRENT_TARGET_MODEL = meta-llama/Meta-Llama-3.1-8B-Instruct
 gcg_sr:
 	HYDRA_FULL_ERROR=1 python run_attacks.py \
-	    model=meta-llama/Meta-Llama-3.1-8B-Instruct \
+	    model=$(CURRENT_TARGET_MODEL) \
 	    dataset=adv_behaviors \
 	    datasets.adv_behaviors.idx=2 \
 	    attack=gcg \
@@ -32,10 +32,14 @@ gcg_reinforce_sr:
 
 
 gcg_multirun:
-	HYDRA_FULL_ERROR=1 python run_attacks.py -m \
+	HYDRA_FULL_ERROR=1 python run_attacks.py \
 		    model=$(CURRENT_TARGET_MODEL)
 		    dataset=adv_behaviors \
 		    datasets.adv_behaviors.idx="range(0,3)" \
 		    attack=gcg \
+
+
+
+none:
 		    hydra.launcher.timeout_min=240 \
 		    hydra/launcher=submitit_local

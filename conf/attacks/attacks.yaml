@@ -205,7 +205,7 @@ gcg:
   placement: suffix
   generation_config: ${attacks._default.generation_config}
   seed: ${attacks._default.seed}
-  num_steps: 30
+  num_steps: 2
   batch_size: 512
   optim_str_init: "x x x x x x x x x x x x x x x x x x x x" # all tested tokenizers convert this to exactly 20 tokens
   search_width: 512
