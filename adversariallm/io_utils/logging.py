@@ -87,10 +87,10 @@ def load_attack_results_from_jailbreak(log_directory: str) -> AttackResult:
     from ..attacks.attack import AttackResult, SingleAttackRunResult, AttackStepResult
     attack_results = []
     f = []
-    for (dirpath, dirnames, filenames) in walk(mypath):
+    for (dirpath, dirnames, filenames) in os.walk(log_directory):
         f.extend(filenames)
         break
-
+    f = [os.path.join(log_directory,file) for file in f] 
     for file in f:
         with open(file, "r") as f:
             data = json.load(f)
@@ -98,7 +98,7 @@ def load_attack_results_from_jailbreak(log_directory: str) -> AttackResult:
         print(f"Reading file: {file}")
         step = data["best_step"]
         single_step = [AttackStepResult(**step)]
-        print(f"Built step: {steps[-1]}")
+        print(f"Built step: {step}")
         single_attack_run_result = SingleAttackRunResult(
             original_prompt=data["original_prompt"],
             steps=single_step,
