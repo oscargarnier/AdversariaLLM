@@ -81,8 +81,32 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
         log_config_to_db(subrun_config, subrun_result, log_file)
 
 
-## TODO theres a good chance this is too simple
 
+def load_attack_results_from_jailbreak(log_directory: str) -> AttackResult:
+    """Load attack results from multiple JSON file."""
+    from ..attacks.attack import AttackResult, SingleAttackRunResult, AttackStepResult
+    attack_results = []
+    for file in os.walk(log_directory):
+        with open(file, "r") as f:
+            data = json.load(f)
+
+        print(f"Reading file: {file}")
+        step = data["best_step"]
+        single_step = [AttackStepResult(**step)]
+        print(f"Built step: {steps[-1]}")
+        single_attack_run_result = SingleAttackRunResult(
+            original_prompt=data["original_prompt"],
+            steps=single_step,
+            total_time = data.get("total_time", None)
+        )
+        attack_results.append(single_attack_run_result)
+
+    return AttackResult(attack_results)
+
+
+
+
+## TODO theres a good chance this is too simple
 def load_attack_results(log_file: str) -> AttackResult:
     """Load attack results from a JSON file."""
     from ..attacks.attack import AttackResult, SingleAttackRunResult, AttackStepResult

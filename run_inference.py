@@ -99,23 +99,27 @@ def run_inferences(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_
             last_runtime_defense = run_config.runtime_defense
 
         attack: Attack[AttackResult] = Attack.from_name(run_config.attack)(run_config.attack_params)
+
         target = build_target_system(
             run_config.runtime_defense_params,
             model=model,
             tokenizer=tokenizer,
         )
 
-        attack_config = run_config.to_attack_config()
-        if len(attack_config["dataset_params"]["idx"]) == 1:
-            attack_config["dataset_params"]["idx"] = attack_config["dataset_params"]["idx"][0]
-        attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
-        #stored = get_mongodb_connection().runs.find_one({"_id": ObjectId("6a5e2363daff8c6f4788312e")})  # find it by something else first, e.g. a timestamp or run name
-        #print(f"===== stored config =====\n {stored['config']}")
-        #print(f"===== attack config =====\n {attack_config}")
-        if attack_doc is None:
-            raise ValueError("Source attack run was not found for runtime inference")
+        ## This logic if loading from attack log files
+        if False:
+            attack_config = run_config.to_attack_config()
+            if len(attack_config["dataset_params"]["idx"]) == 1:
+                attack_config["dataset_params"]["idx"] = attack_config["dataset_params"]["idx"][0]
+            attack_doc = get_mongodb_connection().runs.find_one({"config": attack_config})
+            if attack_doc is None:
+                raise ValueError("Source attack run was not found for runtime inference")
 
-        attack_artifacts = load_attack_results(attack_doc["log_file"])
+        ## This logic for loading from "jailbreak" log files
+
+        attack_storage_adress = os.path.join(cfg.jailbreak_save_dir, run_config.model, run_config.dataset, run_config.attack, run_config.defense or 'none')
+
+        attack_artifacts = load_attack_results_from_jailbreak(attack_storage_adress)
         results = attack.run_inference(target, attack_artifacts)  # type: ignore
 
         log_inference(run_config, results, cfg, date_time_string)
