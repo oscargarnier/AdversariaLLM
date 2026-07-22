@@ -86,7 +86,12 @@ def load_attack_results_from_jailbreak(log_directory: str) -> AttackResult:
     """Load attack results from multiple JSON file."""
     from ..attacks.attack import AttackResult, SingleAttackRunResult, AttackStepResult
     attack_results = []
-    for file in os.walk(log_directory):
+    f = []
+    for (dirpath, dirnames, filenames) in walk(mypath):
+        f.extend(filenames)
+        break
+
+    for file in f:
         with open(file, "r") as f:
             data = json.load(f)
 
