@@ -43,8 +43,10 @@ class PromptDataset(torch.utils.data.Dataset):
 
         if isinstance(config_idx, str):
             if config_idx.startswith("list(range("):
+                print(f"detected a range")
                 try:
                     config_idx = eval(config_idx, {"__builtins__": None}, {"range": range, "list": list})
+                    print(f"evaluated config_idx: {config_idx}")
                 except Exception as e:
                     raise ValueError(f"Could not parse idx string: {config_idx}\n{e}")
             else:
