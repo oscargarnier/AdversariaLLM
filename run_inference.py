@@ -120,7 +120,7 @@ def run_inferences(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_
         attack_storage_adress = os.path.join(cfg.jailbreak_save_dir, run_config.model, run_config.dataset, run_config.attack, run_config.defense or 'none')
 
         attack_artifacts = load_attack_results_from_jailbreak(attack_storage_adress)
-        results = attack.run_inference(target, attack_artifacts)  # type: ignore
+        results = attack.run_inference(target, attack_artifacts, run_config)  # type: ignore
 
         log_inference(run_config, results, cfg, date_time_string)
 

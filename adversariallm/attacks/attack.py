@@ -264,6 +264,7 @@ class Attack(Generic[AttRes]):
             self,
             target: "TargetSystem",
             attack_artifacts: List[Conversation],
+            run_config: RunConfig
     ):
         """Run inference with the successful attack artifact on a batch of conversations.
 
@@ -322,7 +323,7 @@ class Attack(Generic[AttRes]):
             single_output = SingleInferenceOutput(
                 text_input=text_input,
                 output=batch_completions[i][0],
-                target_config=None,
+                run_config=run_config
                 total_time=0.0,  # Placeholder, can be updated with actual timing if needed
             )
             outputs.append(single_output)
@@ -332,7 +333,8 @@ class Attack(Generic[AttRes]):
     def run_inference(
         self,
         target: "TargetSystem",
-        attack_artifacts: AttackResult
+        attack_artifacts: AttackResult,
+        run_config: RunConfig
     ) -> InferenceOutput:
         """Run inference with the successful attack artifact
 
@@ -343,7 +345,7 @@ class Attack(Generic[AttRes]):
         outputs = []
         for i in range(0, len(attack_artifacts.runs), batch_size):
             batch_attack_artifacts= attack_artifacts.runs[i:i + batch_size]
-            batch_outputs = self.run_inference_batch(target, batch_attack_artifacts)
+            batch_outputs = self.run_inference_batch(target, batch_attack_artifacts, run_config)
             outputs.extend(batch_outputs)
         
         return InferenceOutput(outputs)
