@@ -20,7 +20,7 @@ name: testing
 save_dir: ${root_dir}/outputs/  # place to store results
 inference_save_dir: ${root_dir}/inference_results/  # place to store inference results
 embed_dir: ${root_dir}/embeddings/  # place to store embeddings for emebdding attacks
-overwrite: false
+overwrite: true 
 
 classifiers: ["strong_reject"]  # anything from judgezoo
 
