@@ -35,7 +35,7 @@ gcg_multirun:
 	HYDRA_FULL_ERROR=1 python run_attacks.py \
 		    model=$(CURRENT_TARGET_MODEL)
 		    dataset=adv_behaviors \
-		    datasets.adv_behaviors.idx="range(0,3)" \
+		    datasets.adv_behaviors.idx="list(range(0,3))" \
 		    attack=gcg \
 
 
