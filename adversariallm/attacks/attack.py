@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 from abc import abstractmethod
 from datetime import time
+from dataclasses import asdict
+import json
+import os
 from typing import TYPE_CHECKING, Any, List, Union
 import numpy as np
 from adversariallm.lm_utils.tokenization import prepare_conversation
@@ -11,6 +14,7 @@ from beartype.typing import Literal, Optional, Generic, TypeVar
 
 from ..dataset import PromptDataset
 from ..types import Conversation
+from ..io_utils.json_utils import CompactJSONEncoder
 from ..lm_utils import generate_ragged_batched 
 if TYPE_CHECKING:
     from ..defenses import TargetSystem
@@ -128,6 +132,50 @@ class Attack(Generic[AttRes]):
     def __init__(self, config):
         self.config = config
         transformers.set_seed(config.seed)
+
+    def _jsonable(self, value: Any) -> Any:
+        if isinstance(value, Tensor):
+            return value.tolist()
+        if isinstance(value, dict):
+            return {str(key): self._jsonable(inner_value) for key, inner_value in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [self._jsonable(item) for item in value]
+        return value
+
+    def jailbreak_log(self, run: SingleAttackRunResult, storage_address: str, idx: int) -> str:
+        """Write a compact jailbreak artifact for a single attack run.
+
+        The artifact stores the original prompt, total run time, and the step with
+        the minimum loss. The result is saved as ``idx_<number>.json`` inside the
+        provided storage directory.
+        """
+        if not run.steps:
+            raise ValueError("Cannot jailbreak_log a run with no steps")
+
+        scored_steps = [
+            (step_index, step)
+            for step_index, step in enumerate(run.steps)
+            if step.loss is not None
+        ]
+        if scored_steps:
+            best_step_index, best_step = min(scored_steps, key=lambda item: item[1].loss)
+        else:
+            best_step_index = len(run.steps) - 1
+            best_step = run.steps[best_step_index]
+
+        artifact = {
+            "original_prompt": self._jsonable(run.original_prompt),
+            "total_time": run.total_time,
+            "best_step_index": best_step_index,
+            "best_step": self._jsonable(asdict(best_step)),
+        }
+
+        os.makedirs(storage_address, exist_ok=True)
+        log_file = os.path.join(storage_address, f"idx_{int(idx)}.json")
+        with open(log_file, "w") as handle:
+            json.dump(artifact, handle, cls=CompactJSONEncoder)
+
+        return log_file
 
     @classmethod
     def from_name(cls, name: str) -> type["Attack"]:

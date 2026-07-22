@@ -263,6 +263,7 @@ class GCGAttack(Attack):
         self,
         target,
         dataset: PromptDataset,
+        storage_address: str = "undefined_storage_address",
     ) -> AttackResult:
         model = target.model
         tokenizer = target.tokenizer
@@ -276,8 +277,15 @@ class GCGAttack(Attack):
         num_embeddings = embeddings.size(0)
         self.not_allowed_ids = self.not_allowed_ids[self.not_allowed_ids < num_embeddings]
         runs = []
-        for conversation in dataset:
-            runs.append(self._attack_single_conversation(model, tokenizer, conversation))
+        dataset_indices = getattr(dataset, "idx", None)
+        for run_idx, conversation in enumerate(dataset):
+            run = self._attack_single_conversation(model, tokenizer, conversation)
+            runs.append(run)
+            if dataset_indices is not None:
+                idx_value = int(dataset_indices[run_idx])
+            else:
+                idx_value = run_idx
+            self.jailbreak_log(run, storage_address, idx_value)
         return AttackResult(runs=runs)
 
     def _attack_single_conversation(self, model, tokenizer, conversation) -> SingleAttackRunResult:
