@@ -4,7 +4,7 @@ adv_behaviors:
   targets_path: ${root_dir}/data/optimizer_targets/harmbench_targets_text.json
   categories: ['chemical_biological', 'illegal', 'misinformation_disinformation', 'harmful', 'harassment_bullying', 'cybercrime_intrusion'] #,'copyright']
   seed: 0
-  idx: null
+  idx: list(range(0,3)) 
   shuffle: true
 alpaca:
   name: alpaca
