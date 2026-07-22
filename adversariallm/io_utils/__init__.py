@@ -24,7 +24,7 @@ from .database import (
 )
 
 # Logging utilities
-from .logging import log_attack, log_inference, load_attack_results, offload_tensors
+from .logging import log_attack, log_inference, load_attack_results, offload_tensors, load_attack_results_from_jailbreak
 
 # JSON utilities
 from .json_utils import CompactJSONEncoder, cached_json_load
@@ -61,6 +61,7 @@ __all__ = [
     'log_attack',
     'log_inference',
     'load_attack_results',
+    'load_attack_results_from_jailbreak',
     'offload_tensors',
     
     # JSON utilities

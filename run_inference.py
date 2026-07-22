@@ -12,7 +12,7 @@ from adversariallm.attacks import Attack, AttackResult
 from adversariallm.dataset import PromptDataset
 from adversariallm.defenses import build_target_system, validate_defense_compatibility
 from adversariallm.errors import print_exceptions
-from adversariallm.io_utils import RunConfig, filter_config, free_vram, get_mongodb_connection, load_model_and_tokenizer, log_attack, filter_config_for_runtime, load_attack_results, log_inference
+from adversariallm.io_utils import RunConfig, filter_config, free_vram, get_mongodb_connection, load_model_and_tokenizer, log_attack, filter_config_for_runtime, load_attack_results, log_inference, load_attack_results_from_jailbreak
 from run_judges import run_judges
 
 from bson import ObjectId
