@@ -82,7 +82,7 @@ class SingleInferenceOutput:
 
     output: str
     # Results for each step of the attack
-    target_config: Any
+    run_config: Any
 
     # Total time taken for this entire attack run on a **single instance**
     total_time: float = 0.0
@@ -264,7 +264,7 @@ class Attack(Generic[AttRes]):
             self,
             target: "TargetSystem",
             attack_artifacts: List[Conversation],
-            run_config: RunConfig
+            run_config,
     ):
         """Run inference with the successful attack artifact on a batch of conversations.
 
@@ -323,7 +323,7 @@ class Attack(Generic[AttRes]):
             single_output = SingleInferenceOutput(
                 text_input=text_input,
                 output=batch_completions[i][0],
-                run_config=run_config
+                run_config=run_config,
                 total_time=0.0,  # Placeholder, can be updated with actual timing if needed
             )
             outputs.append(single_output)
@@ -334,7 +334,7 @@ class Attack(Generic[AttRes]):
         self,
         target: "TargetSystem",
         attack_artifacts: AttackResult,
-        run_config: RunConfig
+        run_config
     ) -> InferenceOutput:
         """Run inference with the successful attack artifact
 
