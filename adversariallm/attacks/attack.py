@@ -81,8 +81,6 @@ class SingleInferenceOutput:
     text_input: str 
 
     output: str
-    # Results for each step of the attack
-    run_config: Any
 
     # Total time taken for this entire attack run on a **single instance**
     total_time: float = 0.0
@@ -323,7 +321,6 @@ class Attack(Generic[AttRes]):
             single_output = SingleInferenceOutput(
                 text_input=text_input,
                 output=batch_completions[i][0],
-                run_config=run_config,
                 total_time=0.0,  # Placeholder, can be updated with actual timing if needed
             )
             outputs.append(single_output)
