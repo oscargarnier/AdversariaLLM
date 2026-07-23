@@ -329,7 +329,7 @@ class Attack(Generic[AttRes]):
             outputs.append(single_output)
         return outputs
 
-
+    ## TODO make this runconfig typed, might introduce inmport loops 
     def run_inference(
         self,
         target: "TargetSystem",
