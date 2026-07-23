@@ -132,7 +132,6 @@ def load_attack_results_from_jailbreak(log_directory: str) -> AttackResult:
         print(f"Reading file: {file}")
         step = data["best_step"]
         single_step = [AttackStepResult(**step)]
-        print(f"Built step: {step}")
         single_attack_run_result = SingleAttackRunResult(
             original_prompt=data["original_prompt"],
             steps=single_step,
