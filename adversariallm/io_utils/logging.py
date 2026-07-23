@@ -95,7 +95,7 @@ def log_inference(run_config, results, cfg, date_time_string):
 
     print(f"===== Printing the config ======")
     print(f"it is of type {type(run_config)}")
-    for key, value in run_config.items():
+    for key, value in log_message["config"].items():
         print(f"{key}: {value} (type: {type(value)})")
 
     log_message.update(asdict(results))
