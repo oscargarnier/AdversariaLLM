@@ -92,7 +92,11 @@ def log_inference(run_config, results, cfg, date_time_string):
     log_message = {
         "config": run_config.to_mongo_config() if hasattr(run_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True)
     }
-    print(f"at this stage log message is {log_message} \n and of type {type(log_message)}")
+
+    print(f"===== Printing the config ======")
+    print(f"it is of type {type(run_config)}")
+    for key, value in run_config.items():
+        print(f"{key}: {value} (type: {type(value)})")
 
     log_message.update(asdict(results))
     # Find and reserve the first available run_i directory atomically.
