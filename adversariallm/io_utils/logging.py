@@ -80,7 +80,6 @@ def log_attack(run_config, result: AttackResult, cfg: DictConfig, date_time_stri
         logging.info(f"Attack logged to {log_file}")
         log_config_to_db(subrun_config, subrun_result, log_file)
 
-
 def log_inference(run_config, results, cfg, date_time_string):
     """Logs the inference results to a JSON file and MongoDB."""
     save_dir = cfg.inference_save_dir
@@ -93,8 +92,7 @@ def log_inference(run_config, results, cfg, date_time_string):
     log_message = {
         "config": run_config.to_mongo_config() if hasattr(run_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True)
     }
-    ## TODO make sure this was not important
-    offload_tensors(run_config, results, embed_dir)
+    print(f"at this stage log message is {log_message} \n and of type {type(log_message)}")
 
     log_message.update(asdict(results))
     # Find and reserve the first available run_i directory atomically.
