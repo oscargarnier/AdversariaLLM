@@ -93,12 +93,18 @@ def log_inference(run_config, results, cfg, date_time_string):
         "config": run_config.to_mongo_config() if hasattr(run_config, "to_mongo_config") else OmegaConf.to_container(OmegaConf.structured(run_config), resolve=True)
     }
 
-    print(f"===== Printing the config ======")
-    print(f"it is of type {type(run_config)}")
+    log_message.update(asdict(results))
+
+    print(f"===== Printing the log message======")
+    print(f"it is of type {type(log_message)}")
     for key, value in log_message["config"].items():
         print(f"{key}: {value} (type: {type(value)})")
+        if isinstance(value, dict):
+            for subkey, subvalue in value.items():
+                print(f"  {subkey}: {subvalue} (type: {type(subvalue)})")
+    print(f"===== End of log message =====")
 
-    log_message.update(asdict(results))
+
     # Find and reserve the first available run_i directory atomically.
     i = 0
     log_dir = os.path.join(save_dir, date_time_string)
