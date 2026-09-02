@@ -1,5 +1,6 @@
 outputs/
 *.pyc
+*.out
 __pycache__
 multirun/
 .vscode/settings.json
