@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --account=c2016159
 #SBATCH --constraint=MI250
-#SBATCH --job-name=$1
+#SBATCH --job-name=hello_world
 #SBATCH --nodes=1
 #SBATCH --exclusive
-#SBATCH --output=slurm_outputs/$1.out
-#SBATCH --error=slurm_outputs/$1.out
+#SBATCH --output=slurm_outputs/hello_world.out
+#SBATCH --error=slurm_outputs/hello_world.out
 #SBATCH --time=1:00:00
 
 # # With    HyperThreading (SMT), 192 cores and 384 hardware threads.
