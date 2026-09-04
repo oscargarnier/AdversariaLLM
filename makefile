@@ -1,5 +1,4 @@
 CURRENT_TARGET_MODEL = meta-llama/Meta-Llama-3.1-8B-Instruct
-
 gcg:
 	HYDRA_FULL_ERROR=1 python run_attacks.py \
 	    model=$(CURRENT_TARGET_MODEL) \
@@ -25,7 +24,7 @@ defense_poc:
 
 pair_sr:
 	HYDRA_FULL_ERROR=1 python run_attacks.py \
-	    model=meta-llama/Meta-Llama-3.1-8B-Instruct \
+	    model=$(CURRENT_TARGET_MODEL) \
 	    dataset=adv_behaviors \
 	    datasets.adv_behaviors.idx=77 \
 	    attack=pair \
@@ -41,6 +40,3 @@ gcg_reinforce_sr:
 none:
 		    hydra.launcher.timeout_min=240 \
 		    hydra/launcher=submitit_local
-
-slurm:	
-	sbatch --export=ALL,MODEL=$(CURRENT_TARGET_MODEL) slurm_scripts/train.sh
