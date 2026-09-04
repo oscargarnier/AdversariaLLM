@@ -15,12 +15,12 @@ gcg_multiple_index:
 		hydra.launcher.timeout_min=240
 
 
-defense_test:
-	HYDRA_FULL_ERROR=1 python run_inference.py \
-	    model=meta-llama/Meta-Llama-3.1-8B-Instruct \
-	    dataset=adv_behaviors \
-	    attack=gcg \
-	    
+defense_poc:
+	HYDRA_FULL_ERROR=1 python run_attacks.py \
+	attack=actor \
+	model=$(CURRENT_TARGET_MODEL) \
+	defense=polyguard
+			
 
 pair_sr:
 	HYDRA_FULL_ERROR=1 python run_attacks.py \
