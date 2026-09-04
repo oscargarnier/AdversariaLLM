@@ -5,7 +5,7 @@ defaults:
   - defenses: defenses
   - runtime_defenses: runtime_defenses
   - paths
-  - override hydra/launcher: a100h100.yaml
+  - override hydra/launcher: adastra.yaml
   - _self_
 
 hydra:
