@@ -1,5 +1,8 @@
 import os
 from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # determinism
 import logging
@@ -104,6 +107,7 @@ def run_attacks(all_run_configs: list[RunConfig], cfg: DictConfig, date_time_str
 @hydra.main(config_path="./conf", config_name="config", version_base="1.3")
 @print_exceptions
 def main(cfg: DictConfig) -> None:
+
     os.makedirs(cfg.save_dir, exist_ok=True)
     date_time_string = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
     logging.info("-------------------")
