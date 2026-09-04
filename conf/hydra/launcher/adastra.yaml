@@ -1,9 +1,13 @@
-_target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+defaults:
+  - submitit_slurm
+  - _self_
+
 timeout_min: 60
 cpus_per_task: 8
 gpus_per_node: 1
 tasks_per_node: 1
 nodes: 1
 name: ${hydra.job.name}
-partition: MI250X
-comment: "jailbreak ressearch"
+constraint: MI250
+account: c2016159
+comment: "jailbreak research"
