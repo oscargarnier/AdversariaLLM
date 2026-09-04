@@ -1,5 +1,4 @@
 accelerate
-torch==2.6.0
 hydra-core>=1.3.0
 hydra-submitit-launcher
 jailbreakbench
@@ -17,6 +16,6 @@ seaborn
 submitit
 tqdm>=4.66.5
 transformers>=4.56.0
-flash-attn
 beartype
 datasets
+pymongo
