@@ -37,6 +37,3 @@ gcg_reinforce_sr:
 	    datasets.adv_behaviors.idx=0 \
 	    attack=gcg_reinforce \
 
-none:
-		    hydra.launcher.timeout_min=240 \
-		    hydra/launcher=submitit_local
