@@ -6,6 +6,7 @@ defaults:
   - runtime_defenses: runtime_defenses
   - paths
   - override hydra/launcher: adastra.yaml
+  - judge: strong_reject
   - _self_
 
 hydra:
